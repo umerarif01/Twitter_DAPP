@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import SidebarOption from "./SidebarOption";
 import { RiHome7Line, RiHome7Fill, RiFileList2Fill } from "react-icons/ri";
@@ -19,7 +19,9 @@ import useBlockchain from "../hooks/use-blockchain";
 import Modal from "react-modal";
 import { customStyles } from "../lib/constants";
 import { useRef, useEffect } from "react";
-import { create } from "ipfs-http-client";
+import { uploadImage, fetchImage } from "../lib/nftStorage";
+import { NFTStorage, File } from "nft.storage";
+import axios from "axios";
 
 const style = {
   wrapper: `flex-[0.7] px-8 flex flex-col`,
@@ -39,15 +41,19 @@ const style = {
   customInput: `bg-white text-black px-3 py-1 rounded-full hover:bg-[#8899a6] cursor-pointer mt-[20px]`,
 };
 
-const client = create("https://ipfs.infura.io:5001/api/v0");
+const client = new NFTStorage({
+  token:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDVhNzVkODgxZmExMmVlMjk0RGE3ZTllMkVhMkUzMmYxQmQxRjVkMTciLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY2MDI0NTM0OTE3MiwibmFtZSI6Ik5GVCBaT05FIn0.bmL4N5l0VdNYlCKgmII4s0MUVy9BGTbbvuuRTiakQuc",
+});
 
 const Sidebar = ({ initialSelectedIcon = "Home" }) => {
   const [selected, setSelected] = useState(initialSelectedIcon);
   const [modalIsOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-  const { address, contract } = useBlockchain();
-  const [fileUrl, updateFileUrl] = useState(``);
+  const { address, contract, authProvider } = useBlockchain();
+  const [fileUrl, updateFileUrl] = useState();
   const [tweetMessage, setTweetMessage] = useState("");
+  const [state, setState] = useState("Tweet");
+  const [img, setImage] = useState("");
 
   function truncate(_string) {
     let addr = "@" + _string.slice(0, 7) + "...";
@@ -55,6 +61,7 @@ const Sidebar = ({ initialSelectedIcon = "Home" }) => {
   }
 
   function openModal() {
+    setState("Tweet");
     setIsOpen(true);
   }
 
@@ -62,31 +69,29 @@ const Sidebar = ({ initialSelectedIcon = "Home" }) => {
     setIsOpen(false);
   }
 
-  async function onChange(e) {
-    const file = e.target.files[0];
-    try {
-      const added = await client.add(file, {
-        progress: (prog) => console.log(`received: ${prog}`),
-      });
-      const url = `https://ipfs.infura.io/ipfs/${added.path}`;
-      updateFileUrl(url);
-      console.log(url);
-      console.log("File Uploaded");
-    } catch (error) {
-      console.log("Error uploading file: ", error);
-    }
-  }
-
-  async function CreateTweetImg(event) {
-    event.preventDefault();
-    if (!tweetMessage) {
+  async function CreateTweetImg() {
+    setState("Tweeting");
+    const img = new File([fileUrl], "nft.jpg", { type: "image/jpg/png" });
+    const metadata = await client.store({
+      name: "",
+      description: "",
+      image: img,
+    });
+    const url = "https://nftstorage.link/ipfs/" + metadata.url.slice(7, 80);
+    const res = await axios.get(url);
+    if (!tweetMessage || !res) {
+      toast.error("Error!");
+      closeModal();
       return;
     }
-
-    const response = await contract.createTweetImg(tweetMessage, fileUrl);
+    const imageUrl =
+      "https://nftstorage.link/ipfs/" + res.data.image.slice(7, 80);
+    setImage(imageUrl);
+    console.log("uploaded", imageUrl);
+    const response = await contract.createTweetImg(tweetMessage, imageUrl);
     await response.wait();
     toast.success("Tweet created");
-    console.log("Tweet created");
+    setState("Tweeted");
   }
 
   return (
@@ -162,20 +167,34 @@ const Sidebar = ({ initialSelectedIcon = "Home" }) => {
                 setTweetMessage(e.target.value);
               }}
             />
-            <input type="file" onChange={onChange} className="mt-4" />
-            {fileUrl && <img className="mt-4" src={fileUrl} width="600px" />}
+            <input
+              type="file"
+              onChange={(e) => {
+                updateFileUrl(e.target.files[0]);
+              }}
+              className="mt-3"
+              required
+            />
+            {/* Tweet button */}
+            {img && <img src={img} width="200" height="200" />}
+
             <button
-              className="bg-[#1d9bf0] hover:bg-[#1b8cd8] text-white px-5 text-xl font-bold py-3 rounded-md mt-[20px]"
-              onClick={CreateTweetImg}
+              className="bg-[#1d9bf0] hover:bg-[#1b8cd8] text-white px-5 py-2 text-xl font-semibold rounded-md mt-[20px]"
+              onClick={async () => {
+                CreateTweetImg();
+              }}
             >
-              Tweet
+              {state}
             </button>
           </div>
         </Modal>
       </div>
-      <div className={style.profileButton}>
+      <div
+        className={style.profileButton}
+        onClick={authProvider}
+        title="Connect Wallet"
+      >
         <div className={style.profileLeft}>
-          {/* <img src="/logo.png" alt="profile" className={style.profileImage} /> */}
           <Identicon
             size="40"
             string={address}

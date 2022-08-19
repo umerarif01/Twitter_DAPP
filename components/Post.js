@@ -108,7 +108,7 @@ const Post = ({
           </span>
           <div className={style.tweet}>{text}</div>
           <div>
-            <img src={hash}></img>
+            <img src={hash} />
           </div>
         </div>
         <div className={style.footer}>

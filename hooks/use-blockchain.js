@@ -9,7 +9,7 @@ function useBlockchain() {
   const [balance, setBalance] = useState(null);
   const [contract, setContract] = useState(null);
 
-  const ContractAddress = "0x8A0aC0776340b69A8E4BADFef6fD9616290d3d3b";
+  const ContractAddress = "0x915247d2d3a838E95634166010b79F8A4f30597d";
 
   useEffect(() => {
     async function load() {
@@ -52,3 +52,5 @@ function useBlockchain() {
 }
 
 export default useBlockchain;
+
+// Contract deployed to: 0x915247d2d3a838E95634166010b79F8A4f30597d

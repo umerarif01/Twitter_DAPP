@@ -36,6 +36,7 @@ const TweetBox = ({ func }) => {
     await response.wait();
     func();
     toast.success("Tweet created");
+    setTweetMessage("");
     console.log("Tweet created");
   }
 

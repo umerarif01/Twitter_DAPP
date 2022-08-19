@@ -60,6 +60,7 @@ const Feed = () => {
       return "few seconds ago";
     }
   }
+
   const Tweets = useCallback(async () => {
     console.log("Loading...");
     if (!contract) {

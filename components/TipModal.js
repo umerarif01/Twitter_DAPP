@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import useBlockchain from "../hooks/use-blockchain";
+import { ethers } from "ethers";
 
 const TipModal = ({ close, id }) => {
   const [state, setState] = useState("");
@@ -14,11 +15,15 @@ const TipModal = ({ close, id }) => {
       return;
     }
 
-    const response = await contract.tipPost(index, tip);
+    const price = ethers.utils.parseUnits(tip.toString(), "ether");
+
+    const response = await contract.tipPost(index, price, {
+      value: price,
+    });
     setState("Submitting");
     await response.wait();
     // func();
-    console.log("Tipped");
+    setState("Tipped");
     setTip(0);
     // setIsOpen(false);
   }

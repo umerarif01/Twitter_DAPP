@@ -31,7 +31,7 @@ export default function Home() {
           >
             Connect Wallet
           </button>
-          <p className="text-gray-500 text-xl">Switch to LocalHost</p>
+          <p className="text-gray-500 text-xl">Switch to Goerli Testnet</p>
         </div>
       )}
 
